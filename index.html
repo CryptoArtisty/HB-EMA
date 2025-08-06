@@ -1,0 +1,1429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HB-Heikin Boss Trading Assistant</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #10b981;
+            --secondary-dark: #059669;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --light: #f3f4f6;
+            --dark: #1f2937;
+            --gold: #fbbf24;
+            --purple: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f9fafb;
+            color: #1f2937;
+        }
+
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        .step {
+            border-left: 3px solid var(--primary);
+            padding-left: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            transition: all 0.3s ease;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-success {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: var(--secondary-dark);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.9;
+        }
+
+        input, select, textarea {
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .tab-active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .win {
+            border-left-color: var(--secondary) !important;
+        }
+
+        .loss {
+            border-left-color: var(--danger) !important;
+        }
+
+        .journal-entry {
+            border-left: 4px solid #cbd5e1;
+            transition: all 0.3s ease;
+        }
+
+        .journal-entry:hover {
+            transform: translateX(5px);
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day.has-trades {
+            background-color: rgba(79, 70, 229, 0.1);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            cursor: pointer;
+        }
+
+        .calendar-day.has-trades:hover {
+            background-color: rgba(79, 70, 229, 0.2);
+            transform: scale(1.05);
+        }
+
+        .quick-note {
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+        }
+
+        .quick-note:hover {
+            background-color: var(--light);
+            transform: translateY(-2px);
+        }
+
+        .stat-card {
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(145deg, #f9fafb, #ffffff);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: var(--primary);
+        }
+
+        /* Gamification Styles */
+        .xp-bar {
+            background: linear-gradient(90deg, #fbbf24, #f59e0b);
+            border-radius: 1rem;
+            height: 1rem;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .xp-progress {
+            background: linear-gradient(90deg, #10b981, #059669);
+            height: 100%;
+            border-radius: 1rem;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .xp-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .level-badge {
+            background: linear-gradient(135deg, var(--gold), #f59e0b);
+            color: white;
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(251, 191, 36, 0.3);
+        }
+
+        .streak-flame {
+            color: #f97316;
+            filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.5));
+        }
+
+        .achievement-badge {
+            background: linear-gradient(135deg, var(--purple), #7c3aed);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            margin: 0.125rem;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+
+        .xp-notification {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, var(--secondary), var(--secondary-dark));
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .xp-notification.show {
+            transform: translateX(0);
+        }
+
+        .pulse-animation {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .bounce-in {
+            animation: bounceIn 0.6s ease forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-10">
+    <!-- XP Notification -->
+    <div id="xpNotification" class="xp-notification">
+        <div class="flex items-center">
+            <i class="fas fa-star mr-2"></i>
+            <span id="xpNotificationText">+10 XP earned!</span>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
+        <!-- Gamification Header -->
+        <div class="card p-6 mt-6 mb-6">
+            <div class="flex flex-wrap items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <div class="level-badge">
+                        <span id="playerLevel">1</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h2 class="text-xl font-bold text-gray-900">Trading Master</h2>
+                        <div class="flex items-center space-x-2 mt-1">
+                            <span class="text-sm text-gray-600">Level <span id="currentLevel">1</span></span>
+                            <div class="xp-bar flex-1 min-w-32">
+                                <div id="xpProgress" class="xp-progress" style="width: 0%"></div>
+                            </div>
+                            <span class="text-sm text-gray-600"><span id="currentXP">0</span>/<span id="nextLevelXP">100</span> XP</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4 mt-4 sm:mt-0">
+                    <div class="text-center">
+                        <div class="flex items-center justify-center">
+                            <i class="fas fa-fire streak-flame text-2xl"></i>
+                            <span class="text-xl font-bold ml-1" id="loginStreak">0</span>
+                        </div>
+                        <p class="text-xs text-gray-600">Day Streak</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="flex items-center justify-center">
+                            <i class="fas fa-trophy text-yellow-500 text-2xl"></i>
+                            <span class="text-xl font-bold ml-1" id="winStreak">0</span>
+                        </div>
+                        <p class="text-xs text-gray-600">Win Streak</p>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600" id="totalXP">0</div>
+                        <p class="text-xs text-gray-600">Total XP</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4" id="achievementContainer">
+                <!-- Achievements will be displayed here -->
+            </div>
+        </div>
+
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-bold text-center mt-8 mb-10 text-indigo-700">
+            <i class="fas fa-chart-line mr-2"></i> HB-Heikin Boss Trading Assistant
+        </h1>
+        
+        <div class="flex flex-wrap mb-6 border-b">
+            <div class="tab cursor-pointer px-4 py-3 text-center flex-grow tab-active" data-tab="strategy">
+                <i class="fas fa-book-open mr-2"></i> Strategy Guide
+            </div>
+            <div class="tab cursor-pointer px-4 py-3 text-center flex-grow" data-tab="journal">
+                <i class="fas fa-journal-whills mr-2"></i> Trade Journal
+            </div>
+            <div class="tab cursor-pointer px-4 py-3 text-center flex-grow" data-tab="calendar">
+                <i class="fas fa-calendar-alt mr-2"></i> Calendar
+            </div>
+            <div class="tab cursor-pointer px-4 py-3 text-center flex-grow" data-tab="stats">
+                <i class="fas fa-chart-pie mr-2"></i> Statistics
+            </div>
+        </div>
+
+        <!-- STRATEGY GUIDE TAB -->
+        <div id="strategy" class="tab-content fade-in">
+            <div class="card p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-700">HB-Heikin Boss Trading Strategy</h2>
+                <p class="text-lg mb-4">This strategy uses the <span class="font-semibold">350 EMA on 1-minute charts</span> to identify high-probability trades with strict risk management.</p>
+                
+                <div class="bg-indigo-50 p-4 rounded-lg mb-4">
+                    <h3 class="text-xl font-semibold mb-2">Key Rules:</h3>
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li>Only trade with the <span class="font-semibold">dominant trend direction</span></li>
+                        <li>Wait for price to interact with or bounce off <span class="font-semibold">350 EMA</span></li>
+                        <li>Set take profit clear of support/resistance levels</li>
+                        <li>Use your entire position size as stop loss (risk management)</li>
+                        <li>Trade pairs: <span class="font-semibold">BTC, ETH, SOL, ADA against USDT</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Account Setup -->
+            <div class="card p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-700 flex items-center">
+                    <i class="fas fa-wallet mr-2"></i> Account Setup
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Initial Balance (USDT):</label>
+                        <input type="number" id="initialBalanceInput" step="0.01" class="w-full p-2 rounded-md" placeholder="Starting account balance">
+                    </div>
+                    <div class="flex items-end">
+                        <button id="saveBalanceButton" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i> Save Balance
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TRADE ENTRY SECTION -->
+            <div class="card p-6 mb-6">
+                <h2 class="text-2xl font-bold mb-4 text-indigo-700 flex items-center">
+                    <i class="fas fa-plus-circle mr-2"></i> Enter New Trade
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trading Pair:</label>
+                        <select id="tradingPair" class="w-full p-2 rounded-md">
+                            <option value="BTC/USDT">BTC/USDT</option>
+                            <option value="ETH/USDT">ETH/USDT</option>
+                            <option value="SOL/USDT">SOL/USDT</option>
+                            <option value="ADA/USDT">ADA/USDT</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trade Side:</label>
+                        <select id="tradeSide" class="w-full p-2 rounded-md">
+                            <option value="long">BUY/Long</option>
+                            <option value="short">SELL/Short</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Leverage:</label>
+                        <input type="number" id="leverage" min="1" max="100" value="10" class="w-full p-2 rounded-md" placeholder="Custom leverage">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Trading Period:</label>
+                        <select id="tradingPeriod" class="w-full p-2 rounded-md">
+                            <option value="A">Period A (Midnight-3:25am)</option>
+                            <option value="B">Period B (3:25am-6:51am)</option>
+                            <option value="C">Period C (6:51am-10:17am)</option>
+                            <option value="D">Period D (10:17am-1:42pm)</option>
+                            <option value="E">Period E (1:42pm-5:08pm)</option>
+                            <option value="F">Period F (5:08pm-8:34pm)</option>
+                            <option value="G">Period G (8:34pm-Midnight)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Margin Amount (USDT):</label>
+                        <input type="number" id="marginAmount" step="0.01" class="w-full p-2 rounded-md" placeholder="Amount you're willing to lose">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Entry Price (USDT):</label>
+                        <input type="number" id="entryPrice" step="0.0001" class="w-full p-2 rounded-md" placeholder="Entry price">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Take Profit (USDT):</label>
+                        <input type="number" id="takeProfit" step="0.0001" class="w-full p-2 rounded-md" placeholder="TP price">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Stop Loss Price (USDT):</label>
+                        <input type="number" id="stopLossPrice" step="0.0001" class="w-full p-2 rounded-md" placeholder="Stop loss price">
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Trade Notes:</label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-2">
+                        <div class="quick-note p-2 rounded-md text-center text-sm cursor-pointer hover:bg-gray-100" data-note="Strong EMA bounce">Strong EMA bounce</div>
+                        <div class="quick-note p-2 rounded-md text-center text-sm cursor-pointer hover:bg-gray-100" data-note="Clear trend confirmation">Clear trend</div>
+                        <div class="quick-note p-2 rounded-md text-center text-sm cursor-pointer hover:bg-gray-100" data-note="News affected price">News impact</div>
+                        <div class="quick-note p-2 rounded-md text-center text-sm cursor-pointer hover:bg-gray-100" data-note="Resistance breakout">Resistance break</div>
+                    </div>
+                    <textarea id="tradeNotes" class="w-full p-2 rounded-md" rows="3" placeholder="Describe the trade setup (EMA bounce, trend confirmation, etc.)"></textarea>
+                </div>
+                
+                <button id="saveTradeButton" class="btn btn-primary mt-6 w-full sm:w-auto">
+                    <i class="fas fa-save mr-2"></i> Save Trade
+                </button>
+            </div>
+        </div>
+
+        <!-- TRADE JOURNAL TAB -->
+        <div id="journal" class="tab-content hidden fade-in">
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-6 text-indigo-700 flex items-center">
+                    <i class="fas fa-book mr-2"></i> Trade Journal
+                </h2>
+                <div id="journalEntries" class="space-y-4">
+                    <!-- Journal entries will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- CALENDAR TAB -->
+        <div id="calendar" class="tab-content hidden fade-in">
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-6 text-indigo-700 flex items-center">
+                    <i class="fas fa-calendar-alt mr-2"></i> Trading Calendar
+                </h2>
+                <div class="mb-4">
+                    <p id="currentMonth" class="text-xl font-medium text-center"></p>
+                </div>
+                <div class="grid grid-cols-7 gap-2 text-center mb-2">
+                    <div class="text-sm font-medium">Sun</div>
+                    <div class="text-sm font-medium">Mon</div>
+                    <div class="text-sm font-medium">Tue</div>
+                    <div class="text-sm font-medium">Wed</div>
+                    <div class="text-sm font-medium">Thu</div>
+                    <div class="text-sm font-medium">Fri</div>
+                    <div class="text-sm font-medium">Sat</div>
+                </div>
+                <div id="tradeCalendar" class="grid grid-cols-7 gap-2">
+                    <!-- Calendar will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- STATISTICS TAB -->
+        <div id="stats" class="tab-content hidden fade-in">
+            <div class="card p-6">
+                <h2 class="text-2xl font-bold mb-6 text-indigo-700 flex items-center">
+                    <i class="fas fa-chart-pie mr-2"></i> Trading Statistics
+                </h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Total Trades</p>
+                        <p id="totalTrades" class="text-3xl font-bold">0</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Win Rate</p>
+                        <p id="winRate" class="text-3xl font-bold text-green-600">0%</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Avg Win</p>
+                        <p id="avgWin" class="text-3xl font-bold text-green-600">$0</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Avg Loss</p>
+                        <p id="avgLoss" class="text-3xl font-bold text-red-600">$0</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Avg Trade Duration</p>
+                        <p id="avgDuration" class="text-3xl font-bold">0m</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Best Trade Duration</p>
+                        <p id="bestDuration" class="text-3xl font-bold text-green-600">0m</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Worst Trade Duration</p>
+                        <p id="worstDuration" class="text-3xl font-bold text-red-600">0m</p>
+                    </div>
+                    <div class="stat-card p-4">
+                        <p class="text-gray-500 text-sm mb-1">Profit Factor</p>
+                        <p id="profitFactor" class="text-3xl font-bold">0.0</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Best/Worst Periods</h3>
+                        <div id="periodStats" class="space-y-2">
+                            <!-- Period stats will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold mb-4">Pair Performance</h3>
+                        <div id="pairStats" class="space-y-2">
+                            <!-- Pair stats will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8">
+                    <h3 class="text-xl font-semibold mb-4">Account Balance</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="stat-card p-4">
+                            <p class="text-gray-500 text-sm mb-1">Initial Balance</p>
+                            <p id="initialBalance" class="text-2xl font-bold">$0</p>
+                        </div>
+                        <div class="stat-card p-4">
+                            <p class="text-gray-500 text-sm mb-1">Current Balance</p>
+                            <p id="currentBalance" class="text-2xl font-bold">$0</p>
+                        </div>
+                        <div class="stat-card p-4">
+                            <p class="text-gray-500 text-sm mb-1">Profit/Loss</p>
+                            <p id="totalPL" class="text-2xl font-bold text-green-600">$0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Gamification System
+        class GamificationSystem {
+            constructor() {
+                this.xpValues = {
+                    TRADE_ENTERED: 20,
+                    WINNING_TRADE: 50,
+                    LOSING_TRADE: 10,
+                    DAILY_LOGIN: 20,
+                    STATS_REVIEW: 15,
+                    JOURNAL_REVIEW: 10,
+                    STREAK_BONUS: 5,
+                    TRADE_REVIEW: 10,
+                    BALANCE_SET: 10
+                };
+                
+                this.levelThresholds = [0, 100, 250, 500, 1000, 1750, 2750, 4000, 5500, 7500, 10000];
+                this.achievements = [
+                    { id: 'first_trade', name: 'First Steps', description: 'Complete your first trade', icon: 'fas fa-baby', unlocked: false },
+                    { id: 'ten_trades', name: 'Getting Started', description: 'Complete 10 trades', icon: 'fas fa-chart-line', unlocked: false },
+                    { id: 'first_win', name: 'Taste of Victory', description: 'Win your first trade', icon: 'fas fa-trophy', unlocked: false },
+                    { id: 'five_wins', name: 'Winning Streak', description: 'Win 5 trades in a row', icon: 'fas fa-fire', unlocked: false },
+                    { id: 'week_streak', name: 'Dedicated Trader', description: 'Login for 7 days straight', icon: 'fas fa-calendar-check', unlocked: false },
+                    { id: 'level_5', name: 'Experienced Trader', description: 'Reach level 5', icon: 'fas fa-star', unlocked: false },
+                    { id: 'profitable_month', name: 'Monthly Profit', description: 'End a month with positive P&L', icon: 'fas fa-money-bill-wave', unlocked: false },
+                    { id: 'hundred_trades', name: 'Trading Veteran', description: 'Complete 100 trades', icon: 'fas fa-medal', unlocked: false }
+                ];
+                
+                this.loadGameData();
+                this.checkDailyLogin();
+                this.updateDisplay();
+            }
+            
+            loadGameData() {
+                const savedData = localStorage.getItem('hbGameData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    this.totalXP = data.totalXP || 0;
+                    this.level = data.level || 1;
+                    this.loginStreak = data.loginStreak || 0;
+                    this.winStreak = data.winStreak || 0;
+                    this.lastLoginDate = data.lastLoginDate || null;
+                    this.achievements = data.achievements || this.achievements;
+                    this.lastAwardedXP = data.lastAwardedXP || {};
+                } else {
+                    this.totalXP = 0;
+                    this.level = 1;
+                    this.loginStreak = 0;
+                    this.winStreak = 0;
+                    this.lastLoginDate = null;
+                    this.lastAwardedXP = {};
+                }
+            }
+            
+            saveGameData() {
+                const data = {
+                    totalXP: this.totalXP,
+                    level: this.level,
+                    loginStreak: this.loginStreak,
+                    winStreak: this.winStreak,
+                    lastLoginDate: this.lastLoginDate,
+                    achievements: this.achievements,
+                    lastAwardedXP: this.lastAwardedXP
+                };
+                localStorage.setItem('hbGameData', JSON.stringify(data));
+            }
+            
+            checkDailyLogin() {
+                const today = new Date().toDateString();
+                const yesterday = new Date(Date.now() - 86400000).toDateString();
+                
+                if (this.lastLoginDate !== today) {
+                    if (this.lastLoginDate === yesterday) {
+                        this.loginStreak++;
+                    } else if (this.lastLoginDate !== null) {
+                        this.loginStreak = 1;
+                    } else {
+                        this.loginStreak = 1;
+                    }
+                    
+                    this.lastLoginDate = today;
+                    
+                    // Check if we've already awarded XP for login today
+                    const todayKey = new Date().toISOString().split('T')[0];
+                    if (!this.lastAwardedXP['daily_login'] || this.lastAwardedXP['daily_login'] !== todayKey) {
+                        this.awardXP(this.xpValues.DAILY_LOGIN, 'Daily Login Bonus!');
+                        this.lastAwardedXP['daily_login'] = todayKey;
+                    }
+                    
+                    // Check for streak achievements
+                    if (this.loginStreak >= 7) {
+                        this.unlockAchievement('week_streak');
+                    }
+                    
+                    this.saveGameData();
+                }
+            }
+            
+            canAwardXP(type) {
+                const todayKey = new Date().toISOString().split('T')[0];
+                if (!this.lastAwardedXP[type] || this.lastAwardedXP[type] !== todayKey) {
+                    this.lastAwardedXP[type] = todayKey;
+                    return true;
+                }
+                return false;
+            }
+            
+            awardXP(amount, reason) {
+                this.totalXP += amount;
+                const oldLevel = this.level;
+                this.level = this.calculateLevel(this.totalXP);
+                
+                this.showXPNotification(amount, reason);
+                
+                if (this.level > oldLevel) {
+                    this.showLevelUpNotification(this.level);
+                    this.checkLevelAchievements();
+                }
+                
+                this.updateDisplay();
+                this.saveGameData();
+            }
+            
+            calculateLevel(xp) {
+                for (let i = this.levelThresholds.length - 1; i >= 0; i--) {
+                    if (xp >= this.levelThresholds[i]) {
+                        return i + 1;
+                    }
+                }
+                return 1;
+            }
+            
+            getCurrentLevelXP() {
+                const currentLevelIndex = this.level - 1;
+                return this.totalXP - this.levelThresholds[currentLevelIndex];
+            }
+            
+            getXPToNextLevel() {
+                if (this.level >= this.levelThresholds.length) {
+                    return 0; // Max level reached
+                }
+                const nextLevelIndex = this.level;
+                return this.levelThresholds[nextLevelIndex] - this.levelThresholds[this.level - 1];
+            }
+            
+            showXPNotification(amount, reason) {
+                const notification = document.getElementById('xpNotification');
+                const text = document.getElementById('xpNotificationText');
+                text.textContent = `+${amount} XP - ${reason}`;
+                
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 3000);
+            }
+            
+            showLevelUpNotification(newLevel) {
+                setTimeout(() => {
+                    const notification = document.getElementById('xpNotification');
+                    const text = document.getElementById('xpNotificationText');
+                    text.innerHTML = `<i class="fas fa-star mr-2"></i>Level Up! You are now level ${newLevel}!`;
+                    
+                    notification.classList.add('show');
+                    setTimeout(() => {
+                        notification.classList.remove('show');
+                    }, 4000);
+                }, 3500);
+            }
+            
+            unlockAchievement(achievementId) {
+                const achievement = this.achievements.find(a => a.id === achievementId);
+                if (achievement && !achievement.unlocked) {
+                    achievement.unlocked = true;
+                    this.awardXP(25, `Achievement: ${achievement.name}`);
+                    this.updateAchievementDisplay();
+                }
+            }
+            
+            checkLevelAchievements() {
+                if (this.level >= 5) {
+                    this.unlockAchievement('level_5');
+                }
+            }
+            
+            updateDisplay() {
+                document.getElementById('playerLevel').textContent = this.level;
+                document.getElementById('currentLevel').textContent = this.level;
+                document.getElementById('totalXP').textContent = this.totalXP;
+                document.getElementById('loginStreak').textContent = this.loginStreak;
+                document.getElementById('winStreak').textContent = this.winStreak;
+                
+                const currentLevelXP = this.getCurrentLevelXP();
+                const xpToNextLevel = this.getXPToNextLevel();
+                
+                document.getElementById('currentXP').textContent = currentLevelXP;
+                document.getElementById('nextLevelXP').textContent = xpToNextLevel;
+                
+                const progressPercentage = xpToNextLevel > 0 ? (currentLevelXP / xpToNextLevel) * 100 : 100;
+                document.getElementById('xpProgress').style.width = `${progressPercentage}%`;
+                
+                this.updateAchievementDisplay();
+            }
+            
+            updateAchievementDisplay() {
+                const container = document.getElementById('achievementContainer');
+                const unlockedAchievements = this.achievements.filter(a => a.unlocked);
+                
+                if (unlockedAchievements.length > 0) {
+                    container.innerHTML = '<h4 class="text-sm font-semibold text-gray-700 mb-2">Achievements:</h4>' +
+                        unlockedAchievements.map(achievement => 
+                            `<span class="achievement-badge">
+                                <i class="${achievement.icon}"></i>
+                                ${achievement.name}
+                            </span>`
+                        ).join('');
+                } else {
+                    container.innerHTML = '';
+                }
+            }
+            
+            onTradeComplete(result, profitLoss) {
+                if (result === 'win') {
+                    this.winStreak++;
+                    if (this.canAwardXP('winning_trade')) {
+                        this.awardXP(this.xpValues.WINNING_TRADE, 'Winning Trade!');
+                    }
+                    
+                    // Check achievements
+                    const trades = JSON.parse(localStorage.getItem('hbTrades')) || [];
+                    if (trades.length === 1) {
+                        this.unlockAchievement('first_trade');
+                        this.unlockAchievement('first_win');
+                    }
+                    if (trades.length >= 10) {
+                        this.unlockAchievement('ten_trades');
+                    }
+                    if (trades.length >= 100) {
+                        this.unlockAchievement('hundred_trades');
+                    }
+                    if (this.winStreak >= 5) {
+                        this.unlockAchievement('five_wins');
+                    }
+                } else if (result === 'loss') {
+                    this.winStreak = 0;
+                    if (this.canAwardXP('losing_trade')) {
+                        this.awardXP(this.xpValues.LOSING_TRADE, 'Learning Experience');
+                    }
+                    
+                    // Check achievements for first trade
+                    const trades = JSON.parse(localStorage.getItem('hbTrades')) || [];
+                    if (trades.length === 1) {
+                        this.unlockAchievement('first_trade');
+                    }
+                    if (trades.length >= 10) {
+                        this.unlockAchievement('ten_trades');
+                    }
+                    if (trades.length >= 100) {
+                        this.unlockAchievement('hundred_trades');
+                    }
+                }
+                
+                this.checkMonthlyProfit();
+            }
+            
+            onTradeEntered() {
+                if (this.canAwardXP('trade_entered')) {
+                    this.awardXP(this.xpValues.TRADE_ENTERED, 'New Trade Entered');
+                }
+            }
+            
+            onBalanceSet() {
+                if (this.canAwardXP('balance_set')) {
+                    this.awardXP(this.xpValues.BALANCE_SET, 'Account Balance Set');
+                }
+            }
+            
+            checkMonthlyProfit() {
+                const trades = JSON.parse(localStorage.getItem('hbTrades')) || [];
+                const now = new Date();
+                const currentMonth = now.getMonth();
+                const currentYear = now.getFullYear();
+                
+                const monthlyTrades = trades.filter(trade => {
+                    const tradeDate = new Date(trade.date);
+                    return tradeDate.getMonth() === currentMonth && tradeDate.getFullYear() === currentYear;
+                });
+                
+                const monthlyPL = monthlyTrades.reduce((sum, trade) => sum + trade.profitLoss, 0);
+                if (monthlyPL > 0 && monthlyTrades.length >= 5) {
+                    this.unlockAchievement('profitable_month');
+                }
+            }
+            
+            onStatsReview() {
+                if (this.canAwardXP('stats_review')) {
+                    this.awardXP(this.xpValues.STATS_REVIEW, 'Statistics Review');
+                }
+            }
+            
+            onJournalReview() {
+                if (this.canAwardXP('journal_review')) {
+                    this.awardXP(this.xpValues.JOURNAL_REVIEW, 'Journal Review');
+                }
+            }
+            
+            onTradeReview() {
+                if (this.canAwardXP('trade_review')) {
+                    this.awardXP(this.xpValues.TRADE_REVIEW, 'Trade Review');
+                }
+            }
+        }
+
+        // Initialize gamification system
+        const gameSystem = new GamificationSystem();
+
+        // Trade data structure
+        let trades = JSON.parse(localStorage.getItem('hbTrades')) || [];
+        let accountBalance = JSON.parse(localStorage.getItem('hbAccountBalance')) || {
+            initial: 0,
+            current: 0,
+            trades: []
+        };
+        
+        // DOM Elements
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tab switching
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('tab-active'));
+                    tabContents.forEach(c => c.classList.add('hidden'));
+                    
+                    tab.classList.add('tab-active');
+                    document.getElementById(tab.dataset.tab).classList.remove('hidden');
+                    
+                    if (tab.dataset.tab === 'calendar') generateCalendar();
+                    if (tab.dataset.tab === 'journal') {
+                        loadJournal();
+                        gameSystem.onJournalReview();
+                    }
+                    if (tab.dataset.tab === 'stats') {
+                        updateStats();
+                        gameSystem.onStatsReview();
+                    }
+                });
+            });
+            
+            // Save trade
+            document.getElementById('saveTradeButton').addEventListener('click', saveTrade);
+            
+            // Save balance
+            document.getElementById('saveBalanceButton').addEventListener('click', saveInitialBalance);
+            
+            // Quick notes
+            document.querySelectorAll('.quick-note').forEach(note => {
+                note.addEventListener('click', () => {
+                    const textarea = document.getElementById('tradeNotes');
+                    textarea.value += (textarea.value ? '\n' : '') + note.dataset.note;
+                    note.classList.add('pulse-animation');
+                    setTimeout(() => note.classList.remove('pulse-animation'), 600);
+                });
+            });
+            
+            // Load initial data
+            loadInitialBalance();
+            loadJournal();
+            generateCalendar();
+            updateStats();
+        });
+        
+        // Save initial balance
+        function saveInitialBalance() {
+            const initialBalance = parseFloat(document.getElementById('initialBalanceInput').value);
+            
+            if (!initialBalance || initialBalance <= 0) {
+                alert('Please enter a valid initial balance');
+                return;
+            }
+            
+            accountBalance.initial = initialBalance;
+            accountBalance.current = initialBalance;
+            localStorage.setItem('hbAccountBalance', JSON.stringify(accountBalance));
+            
+            gameSystem.onBalanceSet();
+            updateStats();
+            
+            alert('Initial balance saved successfully!');
+        }
+        
+        // Load initial balance
+        function loadInitialBalance() {
+            if (accountBalance.initial > 0) {
+                document.getElementById('initialBalanceInput').value = accountBalance.initial;
+            }
+        }
+        
+        // Save trade to localStorage
+        function saveTrade() {
+            const tradeNumber = trades.length + 1;
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+            const timeStr = now.toTimeString().split(' ')[0];
+            
+            const newTrade = {
+                tradeNumber: tradeNumber,
+                date: dateStr,
+                time: timeStr,
+                tradingPair: document.getElementById('tradingPair').value,
+                side: document.getElementById('tradeSide').value,
+                leverage: parseInt(document.getElementById('leverage').value) || 1,
+                marginAmount: parseFloat(document.getElementById('marginAmount').value) || 0,
+                entryPrice: parseFloat(document.getElementById('entryPrice').value) || 0,
+                takeProfit: parseFloat(document.getElementById('takeProfit').value) || 0,
+                stopLossPrice: parseFloat(document.getElementById('stopLossPrice').value) || 0,
+                tradingPeriod: document.getElementById('tradingPeriod').value,
+                notes: document.getElementById('tradeNotes').value,
+                result: 'open', // Will be updated when trade is closed
+                exitPrice: 0,
+                profitLoss: 0,
+                exitTime: '',
+                entryTimestamp: now.getTime()
+            };
+            
+            if (newTrade.marginAmount > accountBalance.current) {
+                alert('Margin amount exceeds available balance');
+                return;
+            }
+            
+            trades.push(newTrade);
+            localStorage.setItem('hbTrades', JSON.stringify(trades));
+            
+            // Update account balance
+            accountBalance.current -= newTrade.marginAmount;
+            accountBalance.trades.push({
+                id: tradeNumber,
+                amount: -newTrade.marginAmount,
+                date: new Date().toISOString()
+            });
+            localStorage.setItem('hbAccountBalance', JSON.stringify(accountBalance));
+            
+            // Reset form
+            document.getElementById('marginAmount').value = '';
+            document.getElementById('entryPrice').value = '';
+            document.getElementById('takeProfit').value = '';
+            document.getElementById('stopLossPrice').value = '';
+            document.getElementById('tradeNotes').value = '';
+            
+            // Update displays
+            loadJournal();
+            generateCalendar();
+            updateStats();
+            
+            gameSystem.onTradeEntered();
+            alert(`Trade #${tradeNumber} saved successfully!`);
+        }
+        
+        // Load journal entries
+        function loadJournal() {
+            const journalEntries = document.getElementById('journalEntries');
+            journalEntries.innerHTML = '';
+            
+            if (trades.length === 0) {
+                journalEntries.innerHTML = '<p class="text-center text-gray-500 py-8">No trades recorded yet. Complete your first trade to start earning XP!</p>';
+                return;
+            }
+            
+            trades.reverse().forEach((trade, index) => {
+                const entry = document.createElement('div');
+                entry.className = `journal-entry p-4 rounded-lg mb-4 ${trade.result}`;
+                
+                const profitClass = trade.profitLoss >= 0 ? 'text-green-600' : 'text-red-600';
+                const sideClass = trade.side === 'long' ? 'text-green-600' : 'text-red-600';
+                const sideText = trade.side === 'long' ? 'BUY/Long' : 'SELL/Short';
+                
+                // Calculate trade duration if closed
+                let durationText = '';
+                if (trade.result !== 'open' && trade.entryTimestamp) {
+                    const exitTimestamp = new Date(`${trade.date}T${trade.exitTime}`).getTime();
+                    const durationMinutes = Math.round((exitTimestamp - trade.entryTimestamp) / (1000 * 60));
+                    durationText = `<p><span class="font-medium">Duration:</span> ${durationMinutes}m</p>`;
+                }
+                
+                entry.innerHTML = `
+                    <div class="flex flex-wrap justify-between items-start">
+                        <h3 class="text-lg font-semibold">Trade #${trade.tradeNumber}: ${trade.tradingPair} <span class="${sideClass}">${sideText}</span></h3>
+                        <span class="text-sm text-gray-500">${trade.date} ${trade.time}</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                        <p><span class="font-medium">Period:</span> ${trade.tradingPeriod}</p>
+                        <p><span class="font-medium">Leverage:</span> ${trade.leverage}x</p>
+                        <p><span class="font-medium">Entry/Exit:</span> $${trade.entryPrice} → ${trade.exitPrice ? '$'+trade.exitPrice : 'Open'}</p>
+                        <p><span class="font-medium">Risk:</span> $${trade.marginAmount} (${trade.stopLossPrice ? 'SL: $'+trade.stopLossPrice : 'No SL'})</p>
+                        ${durationText}
+                    </div>
+                    ${trade.result !== 'open' ? `
+                        <p class="mt-2 ${profitClass}"><span class="font-medium">Result:</span> ${trade.result.toUpperCase()} (${trade.profitLoss >= 0 ? '+' : ''}$${Math.abs(trade.profitLoss).toFixed(2)})</p>
+                    ` : ''}
+                    <p class="mt-2"><span class="font-medium">Notes:</span> ${trade.notes || 'No notes'}</p>
+                    <div class="flex mt-3 space-x-2">
+                        ${trade.result === 'open' ? `
+                            <button class="btn-success text-xs py-1 px-2 close-trade" data-id="${trade.tradeNumber}">
+                                <i class="fas fa-check-circle mr-1"></i> Close Trade
+                            </button>
+                        ` : ''}
+                        <button class="btn-danger text-xs py-1 px-2 delete-trade" data-id="${trade.tradeNumber}">
+                            <i class="fas fa-trash-alt mr-1"></i> Delete
+                        </button>
+                        <button class="btn btn-primary text-xs py-1 px-2 review-trade" data-id="${trade.tradeNumber}">
+                            <i class="fas fa-eye mr-1"></i> Review (+10 XP)
+                        </button>
+                    </div>
+                `;
+                
+                journalEntries.appendChild(entry);
+            });
+            
+            // Add event listeners for close trade buttons
+            document.querySelectorAll('.close-trade').forEach(button => {
+                button.addEventListener('click', function() {
+                    const tradeId = parseInt(this.dataset.id);
+                    closeTrade(tradeId);
+                });
+            });
+            
+            // Add event listeners for delete buttons
+            document.querySelectorAll('.delete-trade').forEach(button => {
+                button.addEventListener('click', function() {
+                    const tradeId = parseInt(this.dataset.id);
+                    if (confirm('Are you sure you want to delete this trade?')) {
+                        deleteTrade(tradeId);
+                    }
+                });
+            });
+            
+            // Add review event listeners
+            document.querySelectorAll('.review-trade').forEach(button => {
+                button.addEventListener('click', function() {
+                    gameSystem.onTradeReview();
+                    this.classList.add('pulse-animation');
+                    this.innerHTML = '<i class="fas fa-check mr-1"></i> Reviewed!';
+                    this.disabled = true;
+                    setTimeout(() => this.classList.remove('pulse-animation'), 600);
+                });
+            });
+        }
+        
+        // Close an open trade
+        function closeTrade(tradeId) {
+            const tradeIndex = trades.findIndex(t => t.tradeNumber === tradeId);
+            if (tradeIndex === -1 || trades[tradeIndex].result !== 'open') return;
+            
+            const exitPrice = parseFloat(prompt('Enter exit price:'));
+            if (!exitPrice || exitPrice <= 0) {
+                alert('Please enter a valid exit price');
+                return;
+            }
+            
+            const trade = trades[tradeIndex];
+            const now = new Date();
+            
+            // Calculate P&L
+            let profitLoss;
+            if (trade.side === 'long') {
+                profitLoss = (exitPrice - trade.entryPrice) * (trade.marginAmount / trade.entryPrice) * trade.leverage;
+            } else {
+                profitLoss = (trade.entryPrice - exitPrice) * (trade.marginAmount / trade.entryPrice) * trade.leverage;
+            }
+            
+            // Update trade
+            trades[tradeIndex].result = profitLoss >= 0 ? 'win' : 'loss';
+            trades[tradeIndex].exitPrice = exitPrice;
+            trades[tradeIndex].profitLoss = profitLoss;
+            trades[tradeIndex].exitTime = now.toTimeString().split(' ')[0];
+            
+            // Update account balance
+            accountBalance.current += profitLoss;
+            accountBalance.trades.push({
+                id: tradeId,
+                amount: profitLoss,
+                date: now.toISOString()
+            });
+            
+            localStorage.setItem('hbTrades', JSON.stringify(trades));
+            localStorage.setItem('hbAccountBalance', JSON.stringify(accountBalance));
+            
+            loadJournal();
+            generateCalendar();
+            updateStats();
+            
+            gameSystem.onTradeComplete(trades[tradeIndex].result, profitLoss);
+        }
+        
+        // Delete a trade
+        function deleteTrade(tradeId) {
+            const tradeIndex = trades.findIndex(t => t.tradeNumber === tradeId);
+            if (tradeIndex === -1) return;
+            
+            const trade = trades[tradeIndex];
+            
+            // If trade was closed, adjust account balance
+            if (trade.result !== 'open') {
+                accountBalance.current -= trade.profitLoss;
+            } else {
+                // If trade was open, return the margin
+                accountBalance.current += trade.marginAmount;
+            }
+            
+            // Remove the trade from account balance history
+            accountBalance.trades = accountBalance.trades.filter(t => t.id !== tradeId);
+            
+            // Remove the trade
+            trades.splice(tradeIndex, 1);
+            
+            // Reassign trade numbers
+            trades.forEach((trade, index) => {
+                trade.tradeNumber = index + 1;
+            });
+            
+            localStorage.setItem('hbTrades', JSON.stringify(trades));
+            localStorage.setItem('hbAccountBalance', JSON.stringify(accountBalance));
+            
+            loadJournal();
+            generateCalendar();
+            updateStats();
+        }
+        
+        // Generate calendar view
+        function generateCalendar() {
+            const calendar = document.getElementById('tradeCalendar');
+            calendar.innerHTML = '';
+            
+            // Get current date info
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth();
+            const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+            document.getElementById('currentMonth').textContent = `${monthName} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            // Add empty cells for days before first of month
+            for (let i = 0; i < firstDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day bg-gray-50';
+                calendar.appendChild(emptyCell);
+            }
+            
+            // Add day cells
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayTrades = trades.filter(t => t.date === dateStr);
+                
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day bg-white shadow-sm';
+                
+                if (dayTrades.length > 0) {
+                    dayCell.classList.add('has-trades');
+                    
+                    const wins = dayTrades.filter(t => t.result === 'win').length;
+                    const losses = dayTrades.filter(t => t.result === 'loss').length;
+                    const open = dayTrades.filter(t => t.result === 'open').length;
+                    const totalPL = dayTrades.reduce((sum, t) => sum + (t.profitLoss || 0), 0);
+                    
+                    dayCell.innerHTML = `
+                        <div class="font-medium">${day}</div>
+                        <div class="text-xs mt-1 ${totalPL >= 0 ? 'text-green-600' : 'text-red-600'}">
+                            ${totalPL >= 0 ? '+' : ''}$${Math.abs(totalPL).toFixed(2)}
+                        </div>
+                        <div class="text-xs mt-1">
+                            <span class="text-green-600">${wins}</span>/<span class="text-red-600">${losses}</span>${open > 0 ? `/<span class="text-blue-600">${open}</span>` : ''}
+                        </div>
+                    `;
+                    
+                    dayCell.addEventListener('click', () => {
+                        const tradeDetails = dayTrades.map(t => 
+                            `#${t.tradeNumber}: ${t.tradingPair} ${t.side} - ${t.result.toUpperCase()}${t.profitLoss ? ' ($' + (t.profitLoss >= 0 ? '+' : '') + t.profitLoss.toFixed(2) + ')' : ''}`
+                        ).join('\n');
+                        
+                        alert(`Trades on ${dateStr}:\n${tradeDetails}`);
+                    });
+                } else {
+                    dayCell.innerHTML = `<div class="font-medium text-gray-500">${day}</div>`;
+                }
+                
+                // Highlight current day
+                if (day === now.getDate() && month === now.getMonth() && year === now.getFullYear()) {
+                    dayCell.classList.add('border-2', 'border-indigo-500');
+                }
+                
+                calendar.appendChild(dayCell);
+            }
+        }
+        
+        // Update statistics
+        function updateStats() {
+            const closedTrades = trades.filter(t => t.result !== 'open');
+            const wins = closedTrades.filter(t => t.result === 'win').length;
+            const losses = closedTrades.filter(t => t.result === 'loss').length;
+            const winTrades = closedTrades.filter(t => t.result === 'win');
+            const lossTrades = closedTrades.filter(t => t.result === 'loss');
+            const longTrades = closedTrades.filter(t => t.side === 'long');
+            const shortTrades = closedTrades.filter(t => t.side === 'short');
+            
+            // Calculate trade durations
+            const durations = closedTrades.map(trade => {
+                const exitTimestamp = new Date(`${trade.date}T${trade.exitTime}`).getTime();
+                return (exitTimestamp - trade.entryTimestamp) / (1000 * 60); // in minutes
+            });
+            
+            const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+            const bestDuration = durations.length > 0 ? Math.round(Math.min(...durations)) : 0;
+            const worstDuration = durations.length > 0 ? Math.round(Math.max(...durations)) : 0;
+            
+            // Calculate profit factor
+            const totalWins = winTrades.reduce((sum, t) => sum + t.profitLoss, 0);
+            const totalLosses = Math.abs(lossTrades.reduce((sum, t) => sum + t.profitLoss, 0));
+            const profitFactor = totalLosses > 0 ? (totalWins / totalLosses).toFixed(2) : '∞';
+            
+            document.getElementById('totalTrades').textContent = trades.length;
+            document.getElementById('winRate').textContent = closedTrades.length > 0 
+                ? `${Math.round((wins / closedTrades.length) * 100)}%` 
+                : '0%';
+                
+            document.getElementById('avgWin').textContent = winTrades.length > 0
+                ? `$${Math.abs(winTrades.reduce((sum, t) => sum + t.profitLoss, 0) / winTrades.length).toFixed(2)}`
+                : '$0';
+                
+            document.getElementById('avgLoss').textContent = lossTrades.length > 0
+                ? `$${Math.abs(lossTrades.reduce((sum, t) => sum + t.profitLoss, 0) / lossTrades.length).toFixed(2)}`
+                : '$0';
+            
+            document.getElementById('avgDuration').textContent = `${avgDuration}m`;
+            document.getElementById('bestDuration').textContent = `${bestDuration}m`;
+            document.getElementById('worstDuration').textContent = `${worstDuration}m`;
+            document.getElementById('profitFactor').textContent = profitFactor;
+            
+            // Update period stats
+            updatePeriodStats();
+            
+            // Update pair stats
+            updatePairStats();
+            
+            // Update account balance
+            document.getElementById('initialBalance').textContent = `$${accountBalance.initial.toFixed(2)}`;
+            document.getElementById('currentBalance').textContent = `$${accountBalance.current.toFixed(2)}`;
+            
+            const totalPL = accountBalance.current - accountBalance.initial;
+            const totalPLElement = document.getElementById('totalPL');
+            totalPLElement.textContent = `${totalPL >= 0 ? '+' : ''}$${Math.abs(totalPL).toFixed(2)}`;
+            totalPLElement.className = `text-2xl font-bold ${totalPL >= 0 ? 'text-green-600' : 'text-red-600'}`;
+        }
+        
+        // Update period statistics
+        function updatePeriodStats() {
+            const periodStats = document.getElementById('periodStats');
+            periodStats.innerHTML = '';
+            
+            const periodData = {
+                A: { wins: 0, losses: 0, pl: 0 },
+                B: { wins: 0, losses: 0, pl: 0 },
+                C: { wins: 0, losses: 0, pl: 0 },
+                D: { wins: 0, losses: 0, pl: 0 },
+                E: { wins: 0, losses: 0, pl: 0 },
+                F: { wins: 0, losses: 0, pl: 0 },
+                G: { wins: 0, losses: 0, pl: 0 }
+            };
+            
+            trades.forEach(trade => {
+                if (trade.result !== 'open') {
+                    periodData[trade.tradingPeriod][trade.result === 'win' ? 'wins' : 'losses']++;
+                    periodData[trade.tradingPeriod].pl += trade.profitLoss;
+                }
+            });
+            
+            // Sort periods by P&L
+            const sortedPeriods = Object.entries(periodData)
+                .sort((a, b) => b[1].pl - a[1].pl);
+            
+            // Display best and worst periods
+            if (sortedPeriods.length > 0) {
+                const bestPeriod = sortedPeriods[0];
+                const worstPeriod = sortedPeriods[sortedPeriods.length - 1];
+                
+                periodStats.innerHTML = `
+                    <div class="bg-green-50 p-3 rounded-md">
+                        <p class="font-medium">Best Period: ${bestPeriod[0]}</p>
+                        <p>Wins: ${bestPeriod[1].wins} | Losses: ${bestPeriod[1].losses}</p>
+                        <p class="text-green-600">P&L: $${bestPeriod[1].pl.toFixed(2)}</p>
+                    </div>
+                    <div class="bg-red-50 p-3 rounded-md">
+                        <p class="font-medium">Worst Period: ${worstPeriod[0]}</p>
+                        <p>Wins: ${worstPeriod[1].wins} | Losses: ${worstPeriod[1].losses}</p>
+                        <p class="text-red-600">P&L: $${worstPeriod[1].pl.toFixed(2)}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Update pair statistics
+        function updatePairStats() {
+            const pairStats = document.getElementById('pairStats');
+            pairStats.innerHTML = '';
+            
+            const pairData = {};
+            
+            trades.forEach(trade => {
+                if (!pairData[trade.tradingPair]) {
+                    pairData[trade.tradingPair] = { wins: 0, losses: 0, pl: 0 };
+                }
+                
+                if (trade.result !== 'open') {
+                    pairData[trade.tradingPair][trade.result === 'win' ? 'wins' : 'losses']++;
+                    pairData[trade.tradingPair].pl += trade.profitLoss;
+                }
+            });
+            
+            // Sort pairs by P&L
+            const sortedPairs = Object.entries(pairData)
+                .sort((a, b) => b[1].pl - a[1].pl);
+            
+            // Display all pairs
+            sortedPairs.forEach(pair => {
+                const statDiv = document.createElement('div');
+                statDiv.className = `p-3 rounded-md ${pair[1].pl >= 0 ? 'bg-green-50' : 'bg-red-50'}`;
+                
+                statDiv.innerHTML = `
+                    <p class="font-medium">${pair[0]}</p>
+                    <p>Wins: ${pair[1].wins} | Losses: ${pair[1].losses}</p>
+                    <p class="${pair[1].pl >= 0 ? 'text-green-600' : 'text-red-600'}">P&L: $${pair[1].pl.toFixed(2)}</p>
+                `;
+                
+                pairStats.appendChild(statDiv);
+            });
+        }
+    </script>
+</body>
+</html>
